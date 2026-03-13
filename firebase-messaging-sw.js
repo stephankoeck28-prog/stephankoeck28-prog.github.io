@@ -4,7 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-com
 
 // Initialize the Firebase app in the service worker
 firebase.initializeApp({
-  apiKey: "AIzaSyAemNwKkerXt-hvtikIIACR4oBTb72VjL_U",
+  apiKey: "AIzaSyAemNwKerXt-hvtikIIACR4oBTb72VjL_U",
   authDomain: "usv-staw-app.firebaseapp.com",
   projectId: "usv-staw-app",
   storageBucket: "usv-staw-app.appspot.com",
@@ -14,19 +14,46 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background message handler
+// Background message handler - NUR HIER Benachrichtigungen!
 messaging.onBackgroundMessage((payload) => {
-  console.log('Background message:', payload);
+  console.log('⚡ Background message:', payload);
   
-  const title = payload.notification?.title || '⚽ USV StAW';
-  const options = {
-    body: payload.notification?.body || 'Neue Nachricht',
-    icon: '/logo192.png',
-    badge: '/logo192.png',
-    vibrate: [200, 100, 200]
-  };
-
-  return self.registration.showNotification(title, options);
+  // Prüfen ob die App gerade im Vordergrund ist
+  // Wenn ja, keine Benachrichtigung zeigen (Toast kommt von der App)
+  if (self.clients && self.clients.matchAll) {
+    self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then((clientList) => {
+      // Wenn mindestens ein Fenster sichtbar ist, keine Benachrichtigung
+      const hasVisibleClient = clientList.some(client => client.visibilityState === 'visible');
+      
+      if (!hasVisibleClient) {
+        // Nur Benachrichtigung zeigen wenn App NICHT sichtbar
+        const title = payload.notification?.title || '⚽ USV StAW';
+        const options = {
+          body: payload.notification?.body || 'Neue Nachricht',
+          icon: '/logo192.png',
+          badge: '/logo192.png',
+          vibrate: [200, 100, 200],
+          data: payload.data
+        };
+        self.registration.showNotification(title, options);
+      } else {
+        console.log('📱 App ist sichtbar - keine extra Benachrichtigung');
+      }
+    });
+  } else {
+    // Fallback falls clients nicht verfügbar
+    const title = payload.notification?.title || '⚽ USV StAW';
+    const options = {
+      body: payload.notification?.body || 'Neue Nachricht',
+      icon: '/logo192.png',
+      badge: '/logo192.png',
+      vibrate: [200, 100, 200]
+    };
+    self.registration.showNotification(title, options);
+  }
 });
 
 // Notification click handler
@@ -34,9 +61,4 @@ self.addEventListener('notificationclick', function(event) {
   console.log('Notification clicked');
   event.notification.close();
   event.waitUntil(clients.openWindow('/'));
-});
-
-// Fetch handler
-self.addEventListener('fetch', function(event) {
-  event.respondWith(fetch(event.request));
 });
