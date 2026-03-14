@@ -2,24 +2,24 @@ let lastMessageId = null;
 
 messaging.onBackgroundMessage((payload) => {
 
-  const msgId = payload.messageId || payload.notification?.body;
-
-  // verhindert doppelte Push
-  if (msgId === lastMessageId) {
-    console.log("⛔ Doppelter Push blockiert");
+  // Wenn Firebase schon eine Notification sendet -> nichts anzeigen
+  if (payload.notification) {
+    console.log("Firebase zeigt Notification automatisch");
     return;
   }
 
+  const msgId = payload.messageId || payload.data?.body;
+
+  if (msgId === lastMessageId) return;
   lastMessageId = msgId;
 
   self.registration.showNotification(
-    payload.notification?.title || 'USV StAW',
+    payload.data?.title || 'USV StAW',
     {
-      body: payload.notification?.body || 'Neue Nachricht',
+      body: payload.data?.body || 'Neue Nachricht',
       icon: '/logo192.png',
       badge: '/logo192.png',
       tag: msgId
     }
   );
-
 });
