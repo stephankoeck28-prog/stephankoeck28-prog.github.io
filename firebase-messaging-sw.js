@@ -12,35 +12,42 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-let lastPush = null;
+// 🔥 ROBUSTE SPERRE GEGEN DOPPELTE PUSHES
+const processedMessages = new Set();
+
+// Alte Einträge regelmäßig aufräumen (alle 10 Sekunden)
+setInterval(() => {
+  processedMessages.clear();
+  console.log("🧹 Service Worker: processedMessages geleert");
+}, 10000);
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("Push erhalten:", payload);
+  console.log("📨 Push erhalten:", payload);
 
-  const title =
-    payload.notification?.title ||
-    payload.data?.title ||
-    "USV StAW";
-
-  const body =
-    payload.notification?.body ||
-    payload.data?.body ||
-    "Neue Nachricht";
-
-  const messageId = payload.messageId || body;
-
-  // verhindert doppelte Push
-  if (messageId === lastPush) {
-    console.log("⛔ Doppelter Push blockiert");
+  // Eindeutige ID erstellen (Kombination aus Titel + Body)
+  const title = payload.notification?.title || payload.data?.title || "USV StAW";
+  const body = payload.notification?.body || payload.data?.body || "Neue Nachricht";
+  
+  // 🔥 BESSERER SCHLÜSSEL: Kombination aus Titel und Body
+  const messageKey = `${title}-${body}`;
+  
+  // Prüfen ob diese Kombination schon verarbeitet wurde
+  if (processedMessages.has(messageKey)) {
+    console.log("⛔ Doppelter Push blockiert (10-Sekunden-Sperre):", messageKey);
     return;
   }
+  
+  // Als verarbeitet markieren
+  processedMessages.add(messageKey);
+  console.log("✅ Push wird angezeigt:", messageKey);
 
-  lastPush = messageId;
-
+  // Benachrichtigung anzeigen
   self.registration.showNotification(title, {
     body: body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: messageId
+    tag: messageKey,  // Wichtig: Gleicher Tag für grouping
+    renotify: false,   // Nicht erneut benachrichtigen bei gleichem Tag
+    silent: false
   });
 });
