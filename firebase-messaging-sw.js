@@ -2,11 +2,21 @@ let lastPush = null;
 
 messaging.onBackgroundMessage((payload) => {
 
-  const title = payload.data?.title || "USV StAW";
-  const body = payload.data?.body || "Neue Nachricht";
+  console.log("Push erhalten:", payload);
+
+  const title =
+    payload.notification?.title ||
+    payload.data?.title ||
+    "USV StAW";
+
+  const body =
+    payload.notification?.body ||
+    payload.data?.body ||
+    "Neue Nachricht";
+
   const msgId = payload.messageId || body;
 
-  // verhindert doppelte Push
+  // doppelte verhindern
   if (msgId === lastPush) {
     console.log("⛔ Doppelter Push blockiert");
     return;
