@@ -24,7 +24,6 @@ setInterval(() => {
 messaging.onBackgroundMessage((payload) => {
   console.log("📨 Push erhalten:", payload);
 
-  // Eindeutige ID erstellen (Kombination aus Titel + Body)
   const title = payload.notification?.title || payload.data?.title || "USV StAW";
   const body = payload.notification?.body || payload.data?.body || "Neue Nachricht";
   
@@ -41,13 +40,12 @@ messaging.onBackgroundMessage((payload) => {
   processedMessages.add(messageKey);
   console.log("✅ Push wird angezeigt:", messageKey);
 
-  // Benachrichtigung anzeigen
   self.registration.showNotification(title, {
     body: body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: messageKey,  // Wichtig: Gleicher Tag für grouping
-    renotify: false,   // Nicht erneut benachrichtigen bei gleichem Tag
+    tag: messageKey,
+    renotify: false,
     silent: false
   });
 });
