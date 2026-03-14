@@ -1,24 +1,25 @@
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-
-firebase.initializeApp({
-  apiKey: "AIzaSyAemNwKerXt-hvtikIIACR4oBTb72VjL_U",
-  authDomain: "usv-staw-app.firebaseapp.com",
-  projectId: "usv-staw-app",
-  storageBucket: "usv-staw-app.appspot.com",
-  messagingSenderId: "983106867178",
-  appId: "1:983106867178:web:90234121a5833e7e396c93"
-});
-
-const messaging = firebase.messaging();
+let lastMessageId = null;
 
 messaging.onBackgroundMessage((payload) => {
+
+  const msgId = payload.messageId || payload.notification?.body;
+
+  // verhindert doppelte Push
+  if (msgId === lastMessageId) {
+    console.log("⛔ Doppelter Push blockiert");
+    return;
+  }
+
+  lastMessageId = msgId;
+
   self.registration.showNotification(
     payload.notification?.title || 'USV StAW',
     {
       body: payload.notification?.body || 'Neue Nachricht',
       icon: '/logo192.png',
-      badge: '/logo192.png'
+      badge: '/logo192.png',
+      tag: msgId
     }
   );
+
 });
