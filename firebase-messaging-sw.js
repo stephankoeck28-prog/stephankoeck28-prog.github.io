@@ -12,14 +12,35 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+let lastPush = null;
+
 messaging.onBackgroundMessage((payload) => {
   console.log("Push erhalten:", payload);
 
-  self.registration.showNotification(
-    payload.notification?.title || "USV StAW",
-    {
-      body: payload.notification?.body || "Neue Nachricht",
-      icon: "/icon-192.png"
-    }
-  );
+  const title =
+    payload.notification?.title ||
+    payload.data?.title ||
+    "USV StAW";
+
+  const body =
+    payload.notification?.body ||
+    payload.data?.body ||
+    "Neue Nachricht";
+
+  const messageId = payload.messageId || body;
+
+  // verhindert doppelte Push
+  if (messageId === lastPush) {
+    console.log("⛔ Doppelter Push blockiert");
+    return;
+  }
+
+  lastPush = messageId;
+
+  self.registration.showNotification(title, {
+    body: body,
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: messageId
+  });
 });
