@@ -12,40 +12,45 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 🔥 ROBUSTE SPERRE GEGEN DOPPELTE PUSHES
-const processedMessages = new Set();
+// 🔥 Set für bereits verarbeitete Nachrichten-IDs
+const processedMessageIds = new Set();
 
-// Alte Einträge regelmäßig aufräumen (alle 10 Sekunden)
+// Alle 30 Sekunden aufräumen
 setInterval(() => {
-  processedMessages.clear();
-  console.log("🧹 Service Worker: processedMessages geleert");
-}, 10000);
+  processedMessageIds.clear();
+  console.log("🧹 Service Worker: processedMessageIds geleert");
+}, 30000);
 
 messaging.onBackgroundMessage((payload) => {
   console.log("📨 Push erhalten:", payload);
-
-  const title = payload.notification?.title || payload.data?.title || "USV StAW";
-  const body = payload.notification?.body || payload.data?.body || "Neue Nachricht";
   
-  // 🔥 BESSERER SCHLÜSSEL: Kombination aus Titel und Body
-  const messageKey = `${title}-${body}`;
+  // 🔥 ID aus den Daten holen
+  const messageId = payload.data?.message_id || 
+                    payload.messageId || 
+                    `${payload.notification?.title}-${payload.notification?.body}`;
   
-  // Prüfen ob diese Kombination schon verarbeitet wurde
-  if (processedMessages.has(messageKey)) {
-    console.log("⛔ Doppelter Push blockiert (10-Sekunden-Sperre):", messageKey);
+  // Prüfen ob schon verarbeitet
+  if (processedMessageIds.has(messageId)) {
+    console.log("⛔ Doppelter Push blockiert (ID bereits verarbeitet):", messageId);
     return;
   }
   
   // Als verarbeitet markieren
-  processedMessages.add(messageKey);
-  console.log("✅ Push wird angezeigt:", messageKey);
+  processedMessageIds.add(messageId);
+  console.log("✅ Push wird angezeigt mit ID:", messageId);
+  
+  const title = payload.notification?.title || payload.data?.title || "USV StAW";
+  const body = payload.notification?.body || payload.data?.body || "Neue Nachricht";
 
   self.registration.showNotification(title, {
     body: body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: messageKey,
+    tag: messageId,
     renotify: false,
-    silent: false
+    silent: false,
+    data: {
+      messageId: messageId
+    }
   });
 });
